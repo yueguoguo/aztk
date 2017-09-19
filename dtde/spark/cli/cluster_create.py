@@ -67,6 +67,6 @@ def execute(args: typing.NamedTuple):
         args.docker_repo,
         args.wait)
 
-    log.info("Cluster created successfully.")
+    log.info("Cluster %s is being provisioned.", args.cluster_id)
 
     cleanup_spark_config()
