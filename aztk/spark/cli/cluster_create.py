@@ -29,6 +29,8 @@ def setup_parser(parser: argparse.ArgumentParser):
     parser.add_argument('--docker-repo',
                         help='The location of the public docker image you want to use \
                              (<my-username>/<my-repo>:<tag>)')
+    parser.add_argument('--subnet-id',
+                        help='The subnet in which to create the cluster.')
 
     parser.add_argument('--no-wait', dest='wait', action='store_false')
     parser.add_argument('--wait', dest='wait', action='store_true')
@@ -46,6 +48,7 @@ def execute(args: typing.NamedTuple):
         size=args.size,
         size_low_pri=args.size_low_pri,
         vm_size=args.vm_size,
+        subnet_id=args.subnet_id,
         wait=args.wait,
         username=args.username,
         password=args.password,
@@ -74,6 +77,7 @@ def execute(args: typing.NamedTuple):
             vm_count=cluster_conf.size,
             vm_low_pri_count=cluster_conf.size_low_pri,
             vm_size=cluster_conf.vm_size,
+            subnet_id=cluster_conf.subnet_id,
             custom_scripts=custom_scripts,
             docker_repo=cluster_conf.docker_repo,
             spark_configuration=aztk_sdk.spark.models.SparkConfiguration(
@@ -119,6 +123,7 @@ def print_cluster_conf(cluster_conf):
     log.info(">     low priority:      %s", cluster_conf.size_low_pri)
     log.info("spark cluster vm size:   %s", cluster_conf.vm_size)
     log.info("custom scripts:          %s", cluster_conf.custom_scripts)
+    log.info("subnet ID:               %s", cluster_conf.subnet_id)
     log.info("docker repo name:        %s", cluster_conf.docker_repo)
     log.info("wait for cluster:        %s", cluster_conf.wait)
     log.info("username:                %s", cluster_conf.username)

@@ -18,6 +18,7 @@ class ClusterConfiguration:
             vm_count=None,
             vm_low_pri_count=None,
             vm_size=None,
+            subnet_id=None,
             docker_repo: str=None):
 
         self.custom_scripts = custom_scripts
@@ -25,6 +26,7 @@ class ClusterConfiguration:
         self.vm_count = vm_count
         self.vm_size = vm_size
         self.vm_low_pri_count = vm_low_pri_count
+        self.subnet_id = subnet_id
         self.docker_repo = docker_repo
 
 

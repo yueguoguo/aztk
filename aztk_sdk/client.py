@@ -58,7 +58,7 @@ class Client:
         """
             Create a pool and job
             :param cluster_conf: the configuration object used to create the cluster
-            :type cluster_conf: aztk_sdk.models.ClusterConfiguration 
+            :type cluster_conf: aztk_sdk.models.ClusterConfiguration
             :parm software_metadata_key: the id of the software being used on the cluster
             :param start_task: the start task for the cluster
             :param VmImageModel: the type of image to provision for the cluster
@@ -73,6 +73,10 @@ class Client:
             helpers.select_latest_verified_vm_image_with_node_agent_sku(
                 VmImageModel.publisher, VmImageModel.offer, VmImageModel.sku, self.batch_client)
 
+        network_conf = None
+        if cluster_conf.subnet_id is not None:
+            network_conf = batch_models.NetworkConfiguration(subnet_id=cluster_conf.subnet_id)
+
         # Confiure the pool
         pool = batch_models.PoolAddParameter(
             id=pool_id,
@@ -85,6 +89,7 @@ class Client:
             start_task=start_task,
             enable_inter_node_communication=True,
             max_tasks_per_node=1,
+            network_configuration=network_conf,
             metadata=[
                 batch_models.MetadataItem(
                     name=constants.AZTK_SOFTWARE_METADATA_KEY, value=software_metadata_key),
@@ -100,9 +105,9 @@ class Client:
 
         # Add job to batch
         self.batch_client.job.add(job)
-        
+
         return helpers.get_cluster(cluster_conf.cluster_id, self.batch_client)
-    
+
     def __get_pool_details(self, cluster_id: str):
         """
             Print the information for the given cluster
@@ -122,13 +127,13 @@ class Client:
         """
         pools = self.batch_client.pool.list()
         software_metadata = (constants.AZTK_SOFTWARE_METADATA_KEY, software_metadata_key)
-        
+
         aztk_pools = []
         for pool in [pool for pool in pools if pool.metadata]:
             if software_metadata in [(metadata.name, metadata.value) for metadata in pool.metadata]:
                 aztk_pools.append(pool)
         return aztk_pools
-    
+
     def __create_user(self, pool_id: str, node_id: str, username: str, password: str = None, ssh_key: str = None) -> str:
         """
             Create a pool user
@@ -148,7 +153,7 @@ class Client:
                 password=password,
                 ssh_public_key=get_ssh_key.get_user_public_key(ssh_key, self.secrets_config),
                 expiry_time=datetime.now() + timedelta(days=365)))
-    
+
     def __get_remote_login_settings(self, pool_id: str, node_id: str):
         """
         Get the remote_login_settings for node
@@ -165,7 +170,7 @@ class Client:
 
     def create_cluster(self, cluster_conf, wait: bool = False):
         raise NotImplementedError()
-    
+
     def create_clusters_in_parallel(self, cluster_confs):
         raise NotImplementedError()
 
@@ -174,13 +179,13 @@ class Client:
 
     def get_cluster(self, cluster_id: str):
         raise NotImplementedError()
-    
+
     def list_clusters(self):
         raise NotImplementedError()
 
     def wait_until_cluster_is_ready(self, cluster_id):
         raise NotImplementedError()
-    
+
     def create_user(self, cluster_id: str, username: str, password: str = None, ssh_key: str = None) -> str:
         raise NotImplementedError()
 

@@ -77,6 +77,7 @@ class ClusterConfig:
         self.vm_size = None
         self.size = 0
         self.size_low_pri = 0
+        self.subnet_id = None
         self.username = None
         self.password = None
         self.custom_scripts = None
@@ -117,6 +118,9 @@ class ClusterConfig:
             self.size_low_pri = config['size_low_pri']
             self.size = 0
 
+        if config.get('subnet_id') is not None:
+            self.subnet_id = config['subnet_id']
+
         if config.get('username') is not None:
             self.username = config['username']
 
@@ -132,7 +136,7 @@ class ClusterConfig:
         if config.get('wait') is not None:
             self.wait = config['wait']
 
-    def merge(self, uid, username, size, size_low_pri, vm_size, password, wait, docker_repo):
+    def merge(self, uid, username, size, size_low_pri, vm_size, subnet_id, password, wait, docker_repo):
         """
             Reads configuration file (cluster.yaml), merges with command line parameters,
             checks for errors with configuration
@@ -147,6 +151,7 @@ class ClusterConfig:
                 size=size,
                 size_low_pri=size_low_pri,
                 vm_size=vm_size,
+                subnet_id=subnet_id,
                 password=password,
                 wait=wait,
                 custom_scripts=None,
