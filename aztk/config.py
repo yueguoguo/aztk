@@ -11,10 +11,15 @@ class SecretsConfig:
         self.batch_account_name = None
         self.batch_account_key = None
         self.batch_service_url = None
+        self.batch_resource_url = None
 
         self.storage_account_name = None
         self.storage_account_key = None
         self.storage_account_suffix = None
+
+        self.service_principal_tenant_id = None
+        self.service_principal_client_id = None
+        self.service_principal_credential = None
 
         self.docker_endpoint = None
         self.docker_username = None
@@ -45,12 +50,19 @@ class SecretsConfig:
             self.batch_account_name = batch.get('batchaccountname')
             self.batch_account_key = batch.get('batchaccountkey')
             self.batch_service_url = batch.get('batchserviceurl')
+            self.batch_resource_url = batch.get('resourceurl')
 
         storage = secrets_config.get('storage')
         if storage:
             self.storage_account_name = storage.get('storageaccountname')
             self.storage_account_key = storage.get('storageaccountkey')
             self.storage_account_suffix = storage.get('storageaccountsuffix')
+
+        serviceprincipal = secrets_config.get('serviceprincipal')
+        if serviceprincipal:
+            self.service_principal_tenant_id = serviceprincipal.get('tenantid')
+            self.service_principal_client_id = serviceprincipal.get('clientid')
+            self.service_principal_credential = serviceprincipal.get('credential')
 
         docker_config = secrets_config.get('docker')
         if docker_config:
