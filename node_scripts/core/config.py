@@ -2,10 +2,15 @@ import os
 import logging
 import azure.batch.batch_service_client as batch
 import azure.batch.batch_auth as batchauth
+from azure.common.credentials import ServicePrincipalCredentials
 
 account_name = os.environ["AZ_BATCH_ACCOUNT_NAME"]
 account_key = os.environ["BATCH_ACCOUNT_KEY"]
-account_url = os.environ["BATCH_ACCOUNT_URL"]
+service_url = os.environ["BATCH_SERVICE_URL"]
+resource_url = os.environ["BATCH_RESOURCE_URL"]
+tenant_id = os.environ["BATCH_TENANT_ID"]
+client_id = os.environ["BATCH_CLIENT_ID"]
+credential = os.environ["BATCH_CREDENTIAL"]
 
 pool_id = os.environ["AZ_BATCH_POOL_ID"]
 node_id = os.environ["AZ_BATCH_NODE_ID"]
@@ -17,10 +22,17 @@ spark_jupyter_port = os.environ["SPARK_JUPYTER_PORT"]
 spark_job_ui_port = os.environ["SPARK_JOB_UI_PORT"]
 
 def get_client() -> batch.BatchServiceClient:
-    credentials = batchauth.SharedKeyCredentials(
-        account_name,
-        account_key)
-    return batch.BatchServiceClient(credentials, base_url=account_url)
+    if not resource_url:
+        credentials = batchauth.SharedKeyCredentials(
+            account_name,
+            account_key)
+    else:
+        credentials = ServicePrincipalCredentials(
+            client_id=client_id,
+            secret=credential,
+            tenant=tenant_id,
+            resource=resource_url)
+    return batch.BatchServiceClient(credentials, base_url=service_url)
 
 batch_client = get_client()
 

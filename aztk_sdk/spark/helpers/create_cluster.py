@@ -21,9 +21,13 @@ def __docker_run_cmd(docker_repo: str = None) -> str:
     cmd.add_option('-v', '/mnt/batch/tasks:/batch')
 
     cmd.add_option('-e', 'DOCKER_WORKING_DIR=/batch/startup/wd')
+    cmd.add_option('-e', 'BATCH_SERVICE_URL=$BATCH_SERVICE_URL')
     cmd.add_option('-e', 'AZ_BATCH_ACCOUNT_NAME=$AZ_BATCH_ACCOUNT_NAME')
     cmd.add_option('-e', 'BATCH_ACCOUNT_KEY=$BATCH_ACCOUNT_KEY')
-    cmd.add_option('-e', 'BATCH_ACCOUNT_URL=$BATCH_ACCOUNT_URL')
+    cmd.add_option('-e', 'BATCH_TENANT_ID=$BATCH_TENANT_ID')
+    cmd.add_option('-e', 'BATCH_CLIENT_ID=$BATCH_CLIENT_ID')
+    cmd.add_option('-e', 'BATCH_CREDENTIAL=$BATCH_CREDENTIAL')
+    cmd.add_option('-e', 'BATCH_RESOURCE_URL=$BATCH_RESOURCE_URL')
     cmd.add_option('-e', 'STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT_NAME')
     cmd.add_option('-e', 'STORAGE_ACCOUNT_KEY=$STORAGE_ACCOUNT_KEY')
     cmd.add_option('-e', 'STORAGE_ACCOUNT_SUFFIX=$STORAGE_ACCOUNT_SUFFIX')
@@ -112,9 +116,17 @@ def generate_cluster_start_task(
     # TODO use certificate
     environment_settings = [
         batch_models.EnvironmentSetting(
+            name="BATCH_SERVICE_URL", value=spark_client.batch_config.service_url),
+        batch_models.EnvironmentSetting(
             name="BATCH_ACCOUNT_KEY", value=spark_client.batch_config.account_key),
         batch_models.EnvironmentSetting(
-            name="BATCH_ACCOUNT_URL", value=spark_client.batch_config.account_url),
+            name="BATCH_TENANT_ID", value=spark_client.batch_config.tenant_id),
+        batch_models.EnvironmentSetting(
+            name="BATCH_CLIENT_ID", value=spark_client.batch_config.client_id),
+        batch_models.EnvironmentSetting(
+            name="BATCH_CREDENTIAL", value=spark_client.batch_config.credential),
+        batch_models.EnvironmentSetting(
+            name="BATCH_RESOURCE_URL", value=spark_client.batch_config.resource_url),
         batch_models.EnvironmentSetting(
             name="STORAGE_ACCOUNT_NAME", value=spark_client.blob_config.account_name),
         batch_models.EnvironmentSetting(
