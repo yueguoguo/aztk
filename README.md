@@ -71,6 +71,7 @@ aztk spark cluster create --id my_cluster --size 5 --vm-size standard_d2_v2
 - By default, AZTK runs Spark 2.2.0 on an Ubuntu16.04 Docker image. More info [here](/docker-image)
 - By default, AZTK will create a user (with the username **spark**) for your cluster if the argument `--wait` is true
 - The cluster id (`--id`) can only contain alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters.
+- By default, you cannot create clusters of more than 20 cores in total. Visit [this page](https://docs.microsoft.com/en-us/azure/batch/batch-quota-limit#view-batch-quotas) to request a core quota increase.
 
 More information regarding using a cluster can be found in the [cluster documentation](./docs/10-clusters.md)
 
