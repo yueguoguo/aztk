@@ -58,7 +58,7 @@ aztk spark cluster ssh
 aztk spark cluster submit
 ```
 
-### Create and setup your cluster
+### 1. Create and setup your cluster
 
 First, create your cluster:
 ```bash
@@ -68,27 +68,35 @@ aztk spark cluster create --id my_cluster --size 5 --vm-size standard_d2_v2
 - The `--vm-size` argument must be the official SKU name which usually come in the form: "standard_d2_v2"
 - You can create [low-priority VMs](https://docs.microsoft.com/en-us/azure/batch/batch-low-pri-vms) at an 80% discount by using `--size-low-pri` instead of `--size`
 - By default, AZTK runs Spark 2.2.0 on an Ubuntu16.04 Docker image. More info [here](/docker-image)
-- By default, we create a user (with the username **spark**) for your cluster
+- By default, AZTK will create a user (with the username **spark**) for your cluster if the argument `--wait` is true
 - The cluster id (`--id`) can only contain alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters.
 
 More information regarding using a cluster can be found in the [cluster documentation](./docs/10-clusters.md)
 
-### Check on your cluster status
+### 2. Check on your cluster status
 To check your cluster status, use the `get` command:
 ```bash
 aztk spark cluster get --id my_cluster
 ```
 
-### Submit a Spark job
+### 3. Submit a Spark job
 
 When your cluster is ready, you can submit jobs from your local machine to run against the cluster. The output of the spark-submit will be streamed to your local console. Run this command from the cloned AZTK repo:
 ```bash
+// submit a java application
 aztk spark cluster submit \
     --id my_cluster \
-    --name my_job \
+    --name my_java_job \
     --class org.apache.spark.examples.SparkPi \
     --executor-memory 20G \
-    path\to\examples.jar 10
+    path\to\examples.jar 1000
+    
+// submit a python application
+aztk spark cluster submit \
+    --id my_cluster \
+    --name my_python_job \
+    --executor-memory 20G \
+    path\to\pi.py 1000
 ```
 - The `aztk spark cluster submit` command takes the same parameters as the standard [`spark-submit` command](https://spark.apache.org/docs/latest/submitting-applications.html), except instead of specifying `--master`, AZTK requires that you specify your cluster `--id` and a unique job `--name`
 - The job name, `--name`, argument must be atleast 3 characters long
@@ -99,7 +107,7 @@ aztk spark cluster submit \
 
 Learn more about the spark submit command [here](./docs/20-spark-submit.md)
 
-### Log in and Interact with your Spark Cluster
+### 4. Log in and Interact with your Spark Cluster
 Most users will want to work interactively with their Spark clusters. With the `aztk spark cluster ssh` command, you can SSH into the cluster's master node. This command also helps you port-forward your Spark Web UI and Spark Jobs UI to your local machine:
 ```bash
 aztk spark cluster ssh --id my_cluster --user spark
@@ -112,7 +120,7 @@ NOTE: When working interactively, you may want to use tools like Jupyter or RStu
  - [how to setup Jupyter with Pyspark](https://github.com/Azure/aztk/wiki/PySpark-on-Azure-with-AZTK)
  - [how to setup RStudio-Server with Sparklyr](https://github.com/Azure/aztk/wiki/SparklyR-on-Azure-with-AZTK)
 
-### Manage your Spark cluster
+### 5. Manage and Monitor your Spark Cluster
 
 You can also see your clusters from the CLI:
 ```
