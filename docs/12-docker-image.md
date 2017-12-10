@@ -17,20 +17,20 @@ To enable GPUs you may use any of the following images, which are based upong th
 - Spark 1.6.3 - aztk/base:spark1.6.3
 
 We also provide two other image types tailored for the Python and R users: __aztk-r__ and __aztk-python__. You can choose between the following:
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.2.0 - aztk/base:spark2.2.0-python3.6.2-base
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.1.0 - aztk/base:spark2.1.0-python3.6.2-base
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 1.6.3 - aztk/base:spark1.6.3-python3.6.2-base
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.2.0 - aztk/python:spark2.2.0-python3.6.2-base
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.1.0 - aztk/python:spark2.1.0-python3.6.2-base
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 1.6.3 - aztk/python:spark1.6.3-python3.6.2-base
 - R 3.4.1 / Spark v2.2.0 - aztk/r-base:spark2.2.0
 - R 3.4.1 / Spark v2.1.0 - aztk/r-base:spark2.1.0
 - R 3.4.1 / Spark v1.6.3 - aztk/r-base:spark1.6.3
 
 
 Please note that each of these images also have GPU enabled versions. To use these versions, replace the "-base" part of the Docker image tag with "-gpu":
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.2.0 (GPU) - aztk/base:spark2.2.0-python3.6.2-gpu
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.1.0 (GPU) - aztk/base:spark2.1.0-python3.6.2-gpu
-- Anaconda3-5.0.0 (Python 3.6.2) / Spark 1.6.3 (GPU) - aztk/base:spark1.6.3-python3.6.2-gpu
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.2.0 (GPU) - aztk/python:spark2.2.0-python3.6.2-gpu
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 2.1.0 (GPU) - aztk/python:spark2.1.0-python3.6.2-gpu
+- Anaconda3-5.0.0 (Python 3.6.2) / Spark 1.6.3 (GPU) - aztk/python:spark1.6.3-python3.6.2-gpu
 
-*Today, these supported images are hosted on Docker Hub under the repo ["base/gpu/python:<tag>"](https://hub.docker.com/r/aztk).*
+*Today, these supported images are hosted on Docker Hub under the repo ["base/gpu/python/r-base:<tag>"](https://hub.docker.com/r/aztk).*
 
 To select an image other than the default, you can set your Docker image at cluster creation time with the optional **--docker-repo** parameter:
 
