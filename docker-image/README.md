@@ -6,13 +6,13 @@ Please refer to the docs for details on [how to select a docker-repo at cluster 
 ## Supported Images
 By default, this toolkit will use the base Spark image, __aztk/base__. This image contains the bare mininum to get Spark up and running in standalone mode.
 
-On top of that, we also provide additional flavors of Spark images, one geared towards the Python user (PySpark), and the other - coming soon - geared towards the R user (SparklyR or SparkR).
+On top of that, we also provide additional flavors of Spark images, one geared towards the Python user (PySpark), and the other, geared towards the R user (SparklyR or SparkR).
 
 Docker Image | Image Type | User Language(s) | What's Included? 
 :-- | :-- | :-- | :-- 
 [aztk/base](https://hub.docker.com/r/aztk/base/) | Base | Java, Scala |  `Spark`
 [aztk/python](https://hub.docker.com/r/aztk/python/) | Pyspark | Python | `Anaconda`</br>`Jupyter Notebooks` </br> `PySpark`
-(coming soon) [aztk/r-base](https://hub.docker.com/r/aztk/r-base/) | SparklyR | R | `CRAN`</br>`RStudio Server`</br>`SparklyR and SparkR`
+[aztk/r-base](https://hub.docker.com/r/aztk/r-base/) | SparklyR | R | `CRAN`</br>`RStudio Server`</br>`SparklyR and SparkR`
 
 __aztk/gpu__, __aztk/python__ and __aztk/r-base__ images are built on top of the __aztk/base__ image.
 
@@ -34,9 +34,9 @@ aztk/python:spark1.6.3-python3.6.2-base | v1.6.3 | v3.6.2 | -- | -- | -- | --
 aztk/python:spark2.2.0-python3.6.2-gpu | v2.2.0 | v3.6.2 | -- | 8.0 | 6.0 
 aztk/python:spark2.1.0-python3.6.2-gpu | v2.1.0 | v3.6.2 | -- | 8.0 | 6.0 
 aztk/python:spark1.6.3-python3.6.2-gpu | v1.6.3 | v3.6.2 | -- | 8.0 | 6.0 
-[coming soon] aztk/r-base:spark2.2.0-r3.4.1 | v2.2.0 | -- | v3.4.1 | -- | --
-[coming soon] aztk/r-base:spark2.1.0-r3.4.1 | v2.1.0 | -- | v3.4.1 | -- | --
-[coming soon] aztk/r-base:spark1.6.3-r3.4.1 | v1.6.3 | -- | v3.4.1 | -- | --
+aztk/r-base:spark2.2.0-r3.4.1 | v2.2.0 | -- | v3.4.1 | -- | --
+aztk/r-base:spark2.1.0-r3.4.1 | v2.1.0 | -- | v3.4.1 | -- | --
+aztk/r-base:spark1.6.3-r3.4.1 | v1.6.3 | -- | v3.4.1 | -- | --
 
 If you have requests to add to the list of supported images, please file a Github issue.
 
@@ -110,6 +110,6 @@ See [here](https://github.com/Azure/aztk/blob/master/docs/12-docker-image.md#usi
 The Dockerfiles in this directory are used to build the Docker images used by this toolkit. Please reference the individual directories for more information on each Dockerfile:
 - [Base](./base)
 - [Python](./python)
-- [coming soon] R
+- [R](./r)
 
 
