@@ -45,6 +45,7 @@ The core experience of this package is centered around a few commands.
 ```sh
 # create your cluster
 aztk spark cluster create
+aztk spark cluster add-user
 ```
 ```sh
 # monitor and manage your clusters
