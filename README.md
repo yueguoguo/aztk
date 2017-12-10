@@ -3,17 +3,15 @@ Azure Distributed Data Engineering Toolkit (AZTK) is a python CLI application fo
 
 This toolkit is built on top of Azure Batch but does not require any Azure Batch knowledge to use.
 
-Currently, this toolkit is designed to run batch Spark jobs that require additional on-demand compute. Eventually we plan to support other distributed data engineering frameworks in a similar vein. Please let us know which frameworks you'd like for us to support in the future.
-
 ## Notable Features
 - Spark cluster provision time of 5 minutes on average
 - Spark clusters run in Docker containers
+- Run Spark on a GPU enabled cluster
 - Users can bring their own Docker image
 - Ability to use low-priority VMs for an 80% discount
 - Built in support for Azure Blob Storage and Azure Data Lake connection
-- Optional Jupyter Notebook for pythonic interactive experience
-- [coming soon] Optional RStudio Server for an interactive experience in R
-- Tailored Docker image for PySpark and [coming soon] SparklyR
+- [Tailored pythonic experience with PySpark, Jupyter, and Anaconda](https://github.com/Azure/aztk/wiki/PySpark-on-Azure-with-AZTK)
+- [Tailored R experience with SparklyR, RStudio-Server, and Tidyverse](https://github.com/Azure/aztk/wiki/SparklyR-on-Azure-with-AZTK)
 - Ability to run _spark submit_ directly from your local machine's CLI
 
 ## Setup
@@ -64,58 +62,55 @@ aztk spark cluster submit
 
 First, create your cluster:
 ```bash
-aztk spark cluster create \
-    --id <my_cluster_id> \
-    --size <number_of_nodes> \
-    --vm-size <vm_size>
+aztk spark cluster create --id my_cluster --size 5 --vm-size standard_d2_v2
 ```
-You can find more information on VM sizes [here.](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/sizes) Please note that you must use the official SKU name when setting your VM size - they usually come in the form: "standard_d2_v2".
-
-You can also create your cluster with [low-priority](https://docs.microsoft.com/en-us/azure/batch/batch-low-pri-vms) VMs at an 80% discount by using `--size-low-pri` instead of `--size` (we currently do not support mixed low-priority and dedicated VMs):
-```
-aztk spark cluster create \
-    --id <my_cluster_id> \
-    --size-low-pri <number_of_low-pri_nodes> \
-    --vm-size <vm_size>
-```
-
-By default, this package runs Spark 2.2.0 on an Ubuntu16.04 Docker image. More info on this image can be found in the [docker-images](/docker-image) folder in this repo.
-
-NOTE: The cluster id (`--id`) can only contain alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters.
+- See our available VM sizes [here.](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/sizes) 
+- The `--vm-size` argument must be the official SKU name which usually come in the form: "standard_d2_v2"
+- You can create [low-priority VMs](https://docs.microsoft.com/en-us/azure/batch/batch-low-pri-vms) at an 80% discount by using `--size-low-pri` instead of `--size`
+- By default, AZTK runs Spark 2.2.0 on an Ubuntu16.04 Docker image. More info [here](/docker-image)
+- By default, we create a user (with the username **spark**) for your cluster
+- The cluster id (`--id`) can only contain alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters.
 
 More information regarding using a cluster can be found in the [cluster documentation](./docs/10-clusters.md)
 
 ### Check on your cluster status
 To check your cluster status, use the `get` command:
 ```bash
-aztk spark cluster get --id <my_cluster_id>
+aztk spark cluster get --id my_cluster
 ```
 
 ### Submit a Spark job
 
-When your cluster is up, you can submit jobs to run against the cluster:
+When your cluster is ready, you can submit jobs from your local machine to run against the cluster. The output of the spark-submit will be streamed to your local console. Run this command from the cloned AZTK repo:
 ```bash
 aztk spark cluster submit \
-    --id <my_cluste_id> \
-    --name <my_job_name> \
-    [options] \
-    <app jar | python file> \
-    [app arguments]
+    --id my_cluster \
+    --name my_job \
+    --class org.apache.spark.examples.SparkPi \
+    --executor-memory 20G \
+    path\to\examples.jar 10
 ```
-NOTE: The job name (`--name`) must be atleast 3 characters long, can only contain alphanumeric characters including hyphens but excluding underscores, and cannot contain uppercase letters. Each job you submit **must** have a unique name.
+- The `aztk spark cluster submit` command takes the same parameters as the standard [`spark-submit` command](https://spark.apache.org/docs/latest/submitting-applications.html), except instead of specifying `--master`, AZTK requires that you specify your cluster `--id` and a unique job `--name`
+- The job name, `--name`, argument must be atleast 3 characters long
+    - It can only contain alphanumeric characters including hypens but excluding underscores
+    - It cannot contain uppercase letters
+- Each job you submit **must** have a unique name
+- Use the `--no-wait` option for your command to return immediately
 
-The output of spark-submit will be streamed to the console. Use the `--no-wait` option to return immediately. More information regarding monitoring your job can be found in the [spark submit documentation.](./docs/20-spark-submit.md)
-
-To start testing this package, you can start by trying out a Spark job from the [./examples](./examples) folder. The examples are a curated list of samples from Spark-2.2.0.
+Learn more about the spark submit command [here](./docs/20-spark-submit.md)
 
 ### Log in and Interact with your Spark Cluster
 Most users will want to work interactively with their Spark clusters. With the `aztk spark cluster ssh` command, you can SSH into the cluster's master node. This command also helps you port-forward your Spark Web UI and Spark Jobs UI to your local machine:
 ```bash
-aztk spark cluster ssh --id <my_cluster_id>
+aztk spark cluster ssh --id my_cluster --user spark
 ```
 By default, we port forward the Spark Web UI to *localhost:8080*, Spark Jobs UI to *localhost:4040*, and the Spark History Server to *localhost:18080*.
 
 You can configure these settings in the *.aztk/ssh.yaml* file.
+
+NOTE: When working interactively, you may want to use tools like Jupyter or RStudio-Server depending on whether or not you are a python or R user. To do so, you need to setup your cluster with the appropriate docker image and custom scripts:
+ - [how to setup Jupyter with Pyspark](https://github.com/Azure/aztk/wiki/PySpark-on-Azure-with-AZTK)
+ - [how to setup RStudio-Server with Sparklyr](https://github.com/Azure/aztk/wiki/SparklyR-on-Azure-with-AZTK)
 
 ### Manage your Spark cluster
 
@@ -141,6 +136,9 @@ aztk spark cluster delete --id <my_cluster_id>
 - [How do I interact with my Spark cluster using a password instead of an SSH-key?](./docs/10-clusters.md#interactive-mode)
 - [How do I change my cluster default settings?](./docs/13-configuration.md)
 - [How do I modify my *spark-env.sh*, *spark-defaults.conf* or *core-site.xml* files?](./docs/13-configuration.md)
+- [How do I use GPUs with AZTK](./docs/60-gpu.md)
+- [I'm a python user and want to use PySpark, Jupyter, Anaconda packages, and have a Pythonic experience.](https://github.com/Azure/aztk/wiki/PySpark-on-Azure-with-AZTK)
+- [I'm a R user and want to use SparklyR, RStudio, Tidyverse packages, and have an R experience.](https://github.com/Azure/aztk/wiki/SparklyR-on-Azure-with-AZTK)
 
 ## Next Steps
 You can find more documentation [here](./docs)
