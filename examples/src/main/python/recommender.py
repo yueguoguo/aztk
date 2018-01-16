@@ -35,12 +35,12 @@ except ImportError as e:
     sys.exit(1)
 try:
     conf = SparkConf()
-    conf.set("spark.executor.memory", "4g")
-    conf.set("spark.driver.memory", "3g")
-    conf.set("spark.cores.max", "16")
+    conf.set("spark.executor.memory", "24g")
+    conf.set("spark.driver.memory", "16g")
+    conf.set("spark.cores.max", "40")
     conf.set("spark.network.timeout", 1000000)
     conf.setAppName("recommendpy")
-    spark = pyspark.sql.SparkSession.builder.appName("recpy1").config(conf=conf).getOrCreate()
+    spark = pyspark.sql.SparkSession.builder.appName("PySparkRec").config(conf=conf).getOrCreate()
     print("Spark Version Required >2.1; actual: "+str(spark.version))
     sc=spark.sparkContext
 except ImportError as e:
@@ -50,9 +50,11 @@ except ImportError as e:
 # Access data files vis WASB protocol.
 
 wasb_prefix = "wasb://recsys@zhledata.blob.core.windows.net"
-file_folder = "movielens"
+# file_folder = "movielens"
+file_folder = "movielens100k"
 
-url_rating, url_movie, url_catalog = [wasb_prefix + "/" + file_folder + "/" + s for s in ["ratings.csv", "movie.csv", "catalog.csv"]]
+# url_rating, url_movie, url_catalog = [wasb_prefix + "/" + file_folder + "/" + s for s in ["ratings.csv", "movie.csv", "catalog.csv"]]
+url_rating, url_movie, url_catalog = [wasb_prefix + "/" + file_folder + "/" + s for s in ["ratings_api_train_small.csv", "movie.csv", "catalog.csv"]]
 
 # Functions for use.
 
@@ -79,9 +81,9 @@ def thresholding(ratings, threshold):
 
     return(inputDF)
 
-
 def train_test_split(ratings, ratio):
     # Stratified sampling by item into a train and test data set
+
     nusers_by_item = ratings.groupBy('itemID').agg({"customerID": "count"}).withColumnRenamed('count(customerID)', 'nusers').rdd
 
     perm_indices = nusers_by_item.map(lambda r: (r[0], np.random.permutation(r[1]), r[1]))
@@ -89,8 +91,12 @@ def train_test_split(ratings, ratio):
     tr_idx = perm_indices.map(lambda r: (r[0], r[1][: int(round(r[2] * ratio))]))
     test_idx = perm_indices.map(lambda r: (r[0], r[1][int(round(r[2] * ratio)):]))
 
-    tr_by_item = ratings.rdd.groupBy(lambda r: r[1]).join(tr_idx).flatMap( lambda r: np.array([x for x in r[1][0]]) [r[1][1]] )
-    test_by_item = ratings.rdd.groupBy(lambda r: r[1]).join(test_idx).flatMap( lambda r: np.array([x for x in r[1][0]]) [r[1][1]] )
+    tr_by_item = ratings.rdd \
+                    .groupBy(lambda r: r[1]) \
+                    .join(tr_idx).flatMap(lambda col: np.array([x for x in col[1][0]])[col[1][1]])
+    test_by_item = ratings.rdd \
+                    .groupBy(lambda r: r[1]) \
+                    .join(test_idx).flatMap(lambda col: np.array([x for x in col[1][0]])[col[1][1]])
 
     train = tr_by_item.map(lambda r: tuple(r))
     test = test_by_item.map(lambda r: tuple(r))
@@ -101,84 +107,86 @@ def train_test_split(ratings, ratio):
     return train, test
 
 def train_als(ratings, explicit, rank, rp, iteration, non_negative):
+    # To avoid stackoverflow issue.
+
+    sc.setCheckpointDir("checkpoint/")
+    ALS.checkpointInterval = 2
+
     if explicit == True:
-        model = ALS.train(ratings, rank=r, iterations=30, lambda_=rp, nonnegative=True)
+        model = ALS.train(ratings, rank=rank, iterations=iteration, lambda_=rp, nonnegative=non_negative)
     else:
-        model = ALS.trainImplicit(ratings, rank=r, iterations=30, lambda_=rp, nonnegative=True)
+        model = ALS.trainImplicit(ratings, rank=r, iterations=iteration, lambda_=rp, nonnegative=non_negative)
 
     return model
 
-def actual_recommendations(ratings): 
-    windowSpec = Window.partitionBy('customerID').orderBy(col('rating').desc())
-    perUserActualItemsDF = test_ratings \
-        .select('customerID', 'itemID', 'rating', F.rank().over(windowSpec).alias('rank')) \
-        .where('rank <= {0}'.format(k)) \
-        .groupBy('customerID') \
-        .agg(expr('collect_list(itemID) as actual'))
+class Recommendation:
+    """Class for recommendation"""
 
-    return perUserActualItemsDF
+    def __init__(self, ratings, model, k):
+        self.ratings = ratings
+        self.model = model
+        self.k = k
 
-def max_diversity(ratings):
-    perUserActualItemsDF = actual_recommendations(ratings)
+    def actual_recommendations(self):
+        windowSpec = Window.partitionBy('customerID').orderBy(col('rating').desc())
+        perUserActualItemsDF = self.ratings \
+            .select('customerID', 'itemID', 'rating', F.rank().over(windowSpec).alias('rank')) \
+            .where('rank <= {0}'.format(self.k)) \
+            .groupBy('customerID') \
+            .agg(expr('collect_list(itemID) as actual'))
 
-    nItems = test_ratings.map(lambda r: r[1]).distinct().count()
+        return perUserActualItemsDF
 
-    uniqueItemsActual = perUserActualItemsDF.rdd.map(lambda row: row[1]).reduce(lambda x,y: set(x).union(set(y)))
-    maxDiversityAtk = len(uniqueItemsActual) / nItems
+    def recommendation(self):
+        userRecsRDD = self.model.recommendProductsForUsers(self.k)
 
-    return maxDiversityAtk
+        userRecsDF=spark.createDataFrame(
+            # userRecsRDD.flatMap(lambda r: r[1]).repartition(10)
+            userRecsRDD.flatMap(lambda r: r[1])
+        )
 
-def recommendation(ratings, model, k):
-    userRecsRDD = model.recommendProductsForUsers(k)
+        perUserRecommendedItemsDF=userRecsDF.select("user", "product") \
+            .withColumnRenamed('user', 'customerID') \
+            .groupBy('customerID').agg(expr('collect_list(product) as recommended'))
 
-    userRecsDF=spark.createDataFrame(
-        userRecsRDD.flatMap(lambda r: r[1]).repartition(10)
-    )
+        perUserActualItemsDF = self.actual_recommendations()
 
-    perUserRecommendedItemsDF=userRecsDF.select("user", "product") \
-        .withColumnRenamed('user', 'customerID') \
-        .groupBy('customerID').agg(expr('collect_list(product) as recommended'))
+        joined_rec_actual = perUserRecommendedItemsDF.join(perUserActualItemsDF, on='customerID').drop('customerID')
 
-    perUserActualItemsDF = actual_recommendations(ratings)
+        return joined_rec_actual
 
-    joined_rec_actual = perUserRecommendedItemsDF.join(perUserActualItemsDF, on='customerID').drop('customerID')
+    def max_diversity(self):
+        perUserActualItemsDF = self.actual_recommendations()
 
-    return joined_rec_actual
+        nItems = self.ratings.map(lambda r: r[1]).distinct().count()
 
-def get_metrics(recommendations):
-    metrics = RankingMetrics(recommendations.rdd)
+        uniqueItemsActual = perUserActualItemsDF.rdd.map(lambda row: row[1]).reduce(lambda x,y: set(x).union(set(y)))
+        maxDiversityAtk = len(uniqueItemsActual) / nItems
 
-    return metrics
+        return maxDiversityAtk
 
-def patk(metrics, k):
-    patk = metrics.precisionAt(k)
+    def get_metrics(self):
+        items_recommendation = self.recommendation()
 
-    return patk
+        metrics = RankingMetrics(items_recommendation.rdd)
 
-def ndcgatk(metrics, k):
-    ndcg = metrics.ndcgAt(k)
+        # k = int(self.k)
 
-    return ndcg
+        # patk = metrics.precisionAt(k)
 
-def mapatk(metrics, k):
-    map = metrics.meanAveragePrecision(k)
+        # ndcg = metrics.ndcgAt(k)
 
-    return map
+        # mavgp = metrics.meanAveragePrecision(k)
 
-def recallatk(recommendations):
-    recall = recommendations.rdd.map(lambda x: len(set(x[0]).intersection(set(x[1])))/len(x[1])).mean()
+        recall = items_recommendation.rdd.map(lambda x: len(set(x[0]).intersection(set(x[1])))/len(x[1])).mean()
 
-    return recall
+        nItems = self.ratings.rdd.map(lambda r: r[1]).distinct().count()
+        uniqueItemsRecommended = items_recommendation.rdd.map(lambda row: row[0]) \
+                .reduce(lambda x,y: set(x).union(set(y)))
+        diversity = len(uniqueItemsRecommended) / nItems
 
-def diversityatk(recommendations):
-    nItems = test_ratings.map(lambda r: r[1]).distinct().count()
-
-    uniqueItemsRecommended = recommendations.rdd.map(lambda row: row[0]) \
-            .reduce(lambda x,y: set(x).union(set(y)))
-
-    diversity = len(uniqueItemsRecommended) / nItems
-
-    return diversity
+        # return patk, ndcg, mavgp, recall, diversity
+        return recall, diversity
     
 explicit = True
 
@@ -195,37 +203,49 @@ else:
 
 rating_info(ratings)
 
+# Parameters used in the experimentation.
+
+threshold = 0
+split_ratio = 0.65
+r = 80
+rp = 0.01
+k = 10
+
 # Step1 - process the data.
 
 time_start_processing = time.time()
 
-ratings = thresholding(ratings, threshold = 0)
+ratings = thresholding(ratings, threshold=threshold)
 
-train, test = train_test_split(ratings, ratio = 0.65)
-
-print("It takes {0} to finish processing".format(time.time() - time_start_processing))
+train, test = train_test_split(ratings, ratio=split_ratio)
 
 train.cache()
 test.cache()
+
+print("It takes {0} to finish processing".format(time.time() - time_start_processing))
 
 # Step 2 - train ALS model.
 
 time_start_training = time.time()
 
-r = 80
-rp = 0.01
-
-model = train_als(train, explicit, r, rp, 30, True)
+als_model = train_als(ratings=train, explicit=True, rank=r, rp=rp, iteration=30, non_negative=True)
+# als_model = ALS.train(ratings=train, rank=r, iterations=30, lambda_=rp, nonnegative=True)
 
 print("It takes {0} to finish training".format(time.time() - time_start_training))
 
 # Step 3 - evaluate ALS model.
 
-test_ratings = test.toDF(schema=['customerID', 'itemID', 'rating'])
+test_ratings = test.map(lambda r: (int(r[0]), int(r[1]), int(r[2]))) \
+                .toDF(schema=['customerID', 'itemID', 'rating'])
 
 time_start_evaluating = time.time()
 
-k = 5
+recommender = Recommendation(ratings=test_ratings, model=als_model, k=k)
+# patk, ndcg, mavgp, recall, diversity = recommender.get_metrics()
+recall, diversity = recommender.get_metrics()
+
+# print([patk, ndcg, mavgp, recall, diversity])
+print([recall, diversity])
 
 print("It takes {0} to finish evaluating".format(time.time() - time_start_evaluating))
 
