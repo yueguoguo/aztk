@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 
 # Initialize a Spark session.
-# NOTE: not sure whether this is the right way of configuring Spark session with aztk. 
 
 try:
     from pyspark import SparkContext
@@ -35,14 +34,15 @@ except ImportError as e:
     sys.exit(1)
 try:
     conf = SparkConf()
-    conf.set("spark.executor.memory", "24g")
-    conf.set("spark.driver.memory", "16g")
-    conf.set("spark.cores.max", "40")
+    conf.set("spark.executor.memory", "12g")
+    conf.set("spark.driver.memory", "12g")
+    conf.set("spark.cores.max", "20")
     conf.set("spark.network.timeout", 1000000)
     conf.setAppName("recommendpy")
     spark = pyspark.sql.SparkSession.builder.appName("PySparkRec").config(conf=conf).getOrCreate()
     print("Spark Version Required >2.1; actual: "+str(spark.version))
     sc=spark.sparkContext
+    # sc.setCheckpointDir("checkpoint/")
 except ImportError as e:
     print("Error initializing Spark", e)
     sys.exit(1)
@@ -107,6 +107,7 @@ def train_test_split(ratings, ratio):
     return train, test
 
 def train_als(ratings, explicit, rank, rp, iteration, non_negative):
+
     # To avoid stackoverflow issue.
 
     sc.setCheckpointDir("checkpoint/")
@@ -168,7 +169,9 @@ class Recommendation:
     def get_metrics(self):
         items_recommendation = self.recommendation()
 
-        metrics = RankingMetrics(items_recommendation.rdd)
+        items_recommendation.show()
+
+        # metrics = RankingMetrics(items_recommendation.rdd)
 
         # k = int(self.k)
 
@@ -228,8 +231,13 @@ print("It takes {0} to finish processing".format(time.time() - time_start_proces
 
 time_start_training = time.time()
 
-als_model = train_als(ratings=train, explicit=True, rank=r, rp=rp, iteration=30, non_negative=True)
-# als_model = ALS.train(ratings=train, rank=r, iterations=30, lambda_=rp, nonnegative=True)
+# To avoid stackoverflow issue.
+
+sc.setCheckpointDir("checkpoint/")
+# ALS.checkpointInterval = 2
+
+# als_model = train_als(ratings=train, explicit=True, rank=r, rp=rp, iteration=30, non_negative=True)
+als_model = ALS.train(ratings=train, rank=r, iterations=30, lambda_=rp, nonnegative=True)
 
 print("It takes {0} to finish training".format(time.time() - time_start_training))
 
